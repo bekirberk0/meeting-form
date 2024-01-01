@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Müşteri Toplantı Takip</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #meetingList {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .meetingItem {
+            border: 1px solid #ddd;
+            margin: 5px;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>Müşteri Toplantı Takip</h1>
+        
+        <!-- Form for adding meetings -->
+        <form id="meetingForm">
+            {% csrf_token %}
+            <label for="meetingTitle">Toplantı Başlığı:</label>
+            <input type="text" id="meetingTitle" name="meetingTitle" required>
+            
+            <label for="meetingDate">Toplantı Tarihi:</label>
+            <input type="date" id="meetingDate" name="meetingDate" required>
+            
+            <button type="button" onclick="addMeeting()">Toplantı Ekle</button>
+        </form>
+        
+        <!-- Display added meetings -->
+        <ul id="meetingList"></ul>
+        {% if meetings %}
+        {% for meeting in meetings %}
+        <li class="meetingItem">
+            <div>{{ meeting.title }} - {{ meeting.date | date:"Y-m-d" }}</div>
+            <div>
+                <button onclick="editMeeting({{ idx }})">Düzenle</button>
+                <button onclick="deleteMeeting({{ idx }})">Sil</button>
+            </div>
+        </li>
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    <script>
+        var meetings = [];
+
+        function addMeeting() {
+            var title = document.getElementById("meetingTitle").value;
+            var date = document.getElementById("meetingDate").value;
+
+            if (title && date) {
+                var newMeeting = { title: title, date: date };
+                meetings.push(newMeeting);
+
+                displayMeetings();
+                resetForm();
+            }
+
+            let formData = new FormData();
+            formData.append("csrfmiddlewaretoken", document.getElementsByName('csrfmiddlewaretoken')[0].value);
+            formData.append("title", title);
+            formData.append("date", date);
+
+            fetch('', {
+                body: formData,
+                method: "post"
+            })
+        }
+
+        function displayMeetings() {
+            var meetingList = document.getElementById("meetingList");
+            meetingList.innerHTML = "";
+
+            meetings.forEach(function(meeting, index) {
+                var listItem = document.createElement("li");
+                listItem.className = "meetingItem";
+                listItem.innerHTML = `
+                    <div>${meeting.title} - ${meeting.date}</div>
+                    <div>
+                        <button onclick="editMeeting(${index})">Düzenle</button>
+                        <button onclick="deleteMeeting(${index})">Sil</button>
+                    </div>`;
+                meetingList.appendChild(listItem);
+            });
+        }
+
+        function editMeeting(index) {
+            var editedTitle = prompt("Yeni başlık:", meetings[index].title);
+            var editedDate = prompt("Yeni tarih:", meetings[index].date);
+
+            if (editedTitle !== null && editedDate !== null) {
+                meetings[index].title = editedTitle;
+                meetings[index].date = editedDate;
+
+                displayMeetings();
+            }
+        }
+
+        function deleteMeeting(index) {
+            var confirmDelete = confirm("Bu toplantıyı silmek istediğinizden emin misiniz?");
+
+            if (confirmDelete) {
+                meetings.splice(index, 1);
+                displayMeetings();
+            }
+        }
+
+        function resetForm() {
+            document.getElementById("meetingForm").reset();
+        }
+
+        displayMeetings(); // Initial display
+    </script>
+</body>
+</html>
